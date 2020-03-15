@@ -170,6 +170,7 @@ router.get('/edit/:seller_id',(req,res)=>{
     
     }
 */
+
 //upload.fields([{ name: 'seller_img', maxCount: 1 }, { name: 'shop_img', maxCount: 8 }])
 router.put('/edit/:seller_id',upload.fields([{ name: 'seller_img', maxCount: 1 }, { name: 'shop_img', maxCount: 8 }]),(req,res)=>{
     const data = {
@@ -264,7 +265,8 @@ router.put('/edit/:seller_id',upload.fields([{ name: 'seller_img', maxCount: 1 }
     //         data.status='202'
     // }
 
-   
+    const multileple_img = req.files['shop_img'] ? `basic_information.shop_img = ? ` : "";
+
    
     let update_sql = `UPDATE basic_information
                     SET basic_information.seller_account = ?,
@@ -276,42 +278,70 @@ router.put('/edit/:seller_id',upload.fields([{ name: 'seller_img', maxCount: 1 }
                         basic_information.seller_mobile = ?,
                         basic_information.seller_cond_id = ?,
                         basic_information.seller_email = ?,
-                        basic_information.seller_decrip = ? `;
-  
+                        basic_information.seller_decrip = ?,
+                        ${multileple_img} `;
+                 
+                       
 
-    let sql_update_Param = [
-        req.body.seller_account,
-        req.body.seller_name,
-        req.body.seller_shop,
-        req.body.seller_password,
-        req.body.seller_address,
-        req.body.seller_phone,
-        req.body.seller_mobile,
-        req.body.seller_cond_id,
-        req.body.seller_email,
-        req.body.seller_decrip,
-    ];
-   
+                        let sql_update_Param = [
+                            req.body.seller_account,
+                            req.body.seller_name,
+                            req.body.seller_shop,
+                            req.body.seller_password,
+                            req.body.seller_address,
+                            req.body.seller_phone,
+                            req.body.seller_mobile,
+                            req.body.seller_cond_id,
+                            req.body.seller_email,
+                            req.body.seller_decrip,
+                        ];
+
+                        if( multileple_img ){
+
+                            let multile_imgArr = [];
+
+
+                            req.files['shop_img'].forEach((element,index) => {
+                                //    arrayItem.originalname
+                                
+                                    let imgFileNames =  'Sh' + moment(new Date()).format('YYYYMMDDHHmmss') + index +'.'+ element.originalname.split('.')[1]
+                                //    console.log(imgFileNames)
+                                    fs.rename(element.path, './public/images/shopimg'+ imgFileNames,()=>{});
+                                    multile_imgArr.push(imgFileNames);
+                                    sql_update_Param.push(multile_imgArr);
+                                    console.log("shopr-img:sql1:" + sql_update_Param);
+                            });  
+                            
+                        
+                            } else{ 
+                                console.log("shop-img:sql2:" + update_sql);
+                        
+                                sql_update_Param.push(req.params.seller_id)
+                            }
+
+                            if( req.files['seller_img'][0] && req.files['seller_img'][0].originalname ){
+                                let imgFileName = 'S' + moment(new Date()).format('YYYYMMDDHHmmss') + '.' + req.files['seller_img'][0].originalname.split('.')[1];
+                                // console.log(imgFileName)
+                                fs.rename(req.files['seller_img'][0].path, './public/images'+ imgFileName,()=>{});
+                                update_sql += `,basic_information.seller_img = ? WHERE basic_information.seller_id = 'S20010001' `; 
+                                // console.log("seller-img:sql1:" + update_sql);
+                                sql_update_Param.push(imgFileName);
+                                console.log("seller-img:sql1:" + sql_update_Param);
+                            } else {
+                                update_sql += ` WHERE basic_information.seller_id = 'S20010001'`;
+                                console.log("seller-img:sql2:" + update_sql);
+                        
+                                sql_update_Param.push(req.params.seller_id);
+                        
+                        
+                            }
+            
+    
     // req.body 物件中是表單中提交的文字欄位(如果有)
 
     // , WHERE \`seller_id\` = 'S20010001'
 
-    if( req.files['seller_img'][0] && req.files['seller_img'][0].originalname ){
-        let imgFileName = 'S' + moment(new Date()).format('YYYYMMDDHHmmss') + '.' + req.files['seller_img'][0].originalname.split('.')[1];
-        // console.log(imgFileName)
-        fs.rename(req.files['seller_img'][0].path, './public/images'+ imgFileName,()=>{});
-        update_sql += `,basic_information.seller_img = ? WHERE basic_information.seller_id = 'S20010001' `; 
-        // // console.log(update_sql);
-        sql_update_Param.push(imgFileName);
-    } else {
-        update_sql += `basic_information.seller_id = 'S20010001'`;
-        // console.log(update_sql);
-
-        sql_update_Param.push(req.params.seller_id);
-
-
-    }
-
+  
 
     //單一圖片上傳
     // if( req.file && req.file.originalname ){
@@ -329,25 +359,9 @@ router.put('/edit/:seller_id',upload.fields([{ name: 'seller_img', maxCount: 1 }
 
     // }
     //where \`seller_id\` = '${req.session.seller_id}'`;
-   let multileple_img =  req.files['shop_img']
 
-   multileple_img.forEach((element,index) => {
-    //    arrayItem.originalname
-    if( element && element.originalname ){
-        let imgFileNames =  'Sh' + moment(new Date()).format('YYYYMMDDHHmmss') +  + index +'.'+ element.originalname.split('.')[1]
-    //    console.log(imgFileNames)
-        fs.rename(element.path, './public/images/shopimg'+ imgFileNames,()=>{});
-        update_sql += `,basic_information.shop_img = ? WHERE seller_id = "S20010001"`; 
-        sql_update_Param.push(imgFileNames,req.body.seller_id);
-    }else{
-        update_sql += `WHERE seller_id = ?`;
-        // console.log(update_sql);
 
-        sql_update_Param.push(req.params.seller_id);
-    }
-    
-
-    });
+  
      
 
     
